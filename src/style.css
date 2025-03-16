@@ -1,0 +1,36 @@
+body {
+	margin: 0;
+	overflow: hidden;
+}
+
+canvas {
+	height: 100vh !important;
+	width: 100vw !important;
+}
+
+#list {
+	position: fixed;
+	width: 300px;
+	height: 100vh;
+	background-color: white;
+}
+
+#titleSection {
+	display: flex;
+	justify-content: space-between;
+}
+
+#info {
+	--info-width: 400px;
+	position: fixed;
+	right: calc(var(--info-width) * -1);
+	background-color: white;
+	width: var(--info-width);
+	height: 100vh;
+	transition: right 300ms;
+}
+
+.visible {
+	right: 0 !important;
+}
+
