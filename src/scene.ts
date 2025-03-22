@@ -4,6 +4,8 @@ import { Planet } from "./types";
 import { InteractionManager } from "three.interactive";
 import { handlePlanetClick } from "./events";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
+import gsap from "gsap";
+import { Tween } from "three/examples/jsm/libs/tween.module.js";
 
 async function buildScene(scene: THREE.Scene, camera: THREE.PerspectiveCamera, orbitControls: OrbitControls, interactionManager: InteractionManager) {
 	const planets: Planet[] = await getPlanets()
@@ -91,15 +93,41 @@ function buildPlanet(planet: Planet): {orbitMesh: THREE.Line, planetMesh: THREE.
 	return { orbitMesh, planetMesh }
 }
 
-function addPlanetOption(planet: Planet, planetMesh: THREE.Mesh, camera: THREE.PerspectiveCamera, orbitControls: OrbitControls) {
+function addPlanetOption(planet: Planet, planetMesh: THREE.Mesh, camera: THREE.PerspectiveCamera, controls: OrbitControls) {
 	const objects = document.getElementById("objects")!
 	const optionDiv = document.createElement("div")
 	optionDiv.innerText = planet.englishName
-	optionDiv.addEventListener("click", (event) => {
-		// camera.quaternion.slerp(planetMesh.position, 0)
-		orbitControls.target = planetMesh.position
-		// camera.lookAt(planetMesh.position)
-		console.log(event)
+	optionDiv.addEventListener("click", () => {
+		const targetPos = planetMesh.position.clone();
+		const offset = planet.meanRadius * 10000;
+		const duration = 1.5;
+		const ease: gsap.EaseString = "power2.inOut";
+
+		// Camera Position
+		gsap.to(camera.position, {
+			duration: duration,
+			x: targetPos.x + offset,
+			y: targetPos.y + offset,
+			z: targetPos.z + offset,
+			ease: ease,
+			onUpdate: () => {
+				controls.update();
+			}
+		});
+
+		// Camera Rotation
+		gsap.to(controls.target, {
+			duration: duration,
+			x: targetPos.x,
+			y: targetPos.y,
+			z: targetPos.z,
+			ease: ease,
+			onUpdate: () => {
+				camera.lookAt(controls.target);
+				controls.update();
+			}
+		});
+
 	})
 
 	objects.appendChild(optionDiv)
