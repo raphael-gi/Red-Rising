@@ -1,28 +1,10 @@
-import * as THREE from "three"
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { buildScene } from "./scene"
-import { InteractionManager } from "three.interactive";
+import Global from "./state";
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100000000000)
+Global.createGlobals();
 
-const renderer = new THREE.WebGLRenderer({
-	canvas: document.querySelector("#app")!
-})
-
-renderer.setPixelRatio(window.devicePixelRatio)
-renderer.setSize(window.innerWidth, window.innerHeight)
-
-camera.position.set(0, 0, 500000000)
-camera.up.set(0, 0, 1)
-
-const controls = new OrbitControls(camera, renderer.domElement)
-
-const interactionManager = new InteractionManager(
-	renderer,
-	camera,
-	renderer.domElement
-)
+const renderer = Global.getRenderer();
+const camera = Global.getCamera();
 
 window.addEventListener("resize", () => {
 	const canvas = renderer.domElement;
@@ -32,12 +14,12 @@ window.addEventListener("resize", () => {
 
 function animate() {
 	requestAnimationFrame(animate)
-	renderer.render(scene, camera)
+	renderer.render(Global.getScene(), camera)
 
-	interactionManager.update()
-	controls.update()
+	Global.getInteractionManager().update()
+	Global.getControls().update()
 }
 
 animate()
 
-buildScene(scene, camera, controls, interactionManager)
+buildScene()

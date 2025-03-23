@@ -1,31 +1,35 @@
 import * as THREE from "three"
-import { getPlanets, getSun } from "./api"
-import { Planet } from "./types";
-import { InteractionManager } from "three.interactive";
+import { getMoons, getPlanets, getSun } from "./api"
+import { Moon, OrbitObject, Planet } from "./types";
 import { handlePlanetClick } from "./events";
-import { OrbitControls } from "three/examples/jsm/Addons.js";
-import gsap from "gsap";
-import { Tween } from "three/examples/jsm/libs/tween.module.js";
+import Global from "./state";
+import { PLANET_SCALE } from "./constants";
 
-async function buildScene(scene: THREE.Scene, camera: THREE.PerspectiveCamera, orbitControls: OrbitControls, interactionManager: InteractionManager) {
+async function buildScene() {
 	const planets: Planet[] = await getPlanets()
+	const moons: Moon[] = await getMoons(planets);
 	const sun: Planet = await getSun()
 
 	const sunMesh = buildSun(sun)
 
-	sunMesh.addEventListener("click" as any, ({ target }) => {
-		handlePlanetClick(target)
-	})
-
+	const interactionManager = Global.getInteractionManager()
 	interactionManager.add(sunMesh)
+
+	const scene = Global.getScene()
 	scene.add(sunMesh)
 
 	planets.forEach((planet) => {
-		const { orbitMesh, planetMesh } = buildPlanet(planet)
+		const planetMoons: Moon[] = []
+		moons.forEach((moon) => {
+			if (moon.aroundPlanet.planet === planet.id) {
+				planetMoons.push(moon)
+			}
+		})
+		const { orbitMesh, planetMesh } = buildPlanet(planet, planetMoons)
 		scene.add(orbitMesh)
 		interactionManager.add(planetMesh)
 		scene.add(planetMesh)
-		addPlanetOption(planet, planetMesh, camera, orbitControls)
+		addPlanetOption(planet, planetMesh)
 	})
 }
 
@@ -48,17 +52,71 @@ function buildSun(sun: Planet): THREE.Mesh {
 	return sunMesh
 }
 
-function buildPlanet(planet: Planet): {orbitMesh: THREE.Line, planetMesh: THREE.Mesh} {
-	const majorAxis = planet.semimajorAxis * 2
+function buildPlanet(planet: Planet, moons: Moon[]): { orbitMesh: THREE.Line, planetMesh: THREE.Mesh } {
+	const { orbitCurve, orbitMesh } = createOrbit(planet)
+
+	const planetGeometry = new THREE.SphereGeometry(1, 32, 32)
+	const planetMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
+	const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial)
+	planetMesh.name = planet.englishName
+
+	planetMesh.addEventListener("click" as any, ({ target }) => handlePlanetClick(planet, target))
+
+	planetMesh.scale.set(
+		planet.equaRadius * 2 * PLANET_SCALE,
+		planet.equaRadius * 2 * PLANET_SCALE,
+		planet.polarRadius * 2 * PLANET_SCALE
+	)
+
+	const planetPosition = orbitCurve.getPoint(planet.mainAnomaly)
+	planetMesh.position.set(planetPosition.x, planetPosition.y, 0)
+
+	moons.forEach((moon) => buildMoon(planetPosition, moon))
+
+	return { orbitMesh, planetMesh }
+}
+
+function buildMoon(planetPosition: THREE.Vector2, moon: Moon) {
+	const { orbitCurve, orbitMesh } = createOrbit(moon, planetPosition.x, planetPosition.y, PLANET_SCALE / 5)
+	const moonMesh = buildOrbitObject(moon, orbitCurve)
+
+	const scene = Global.getScene()
+	const interactionManager = Global.getInteractionManager()
+	scene.add(orbitMesh)
+	interactionManager.add(moonMesh)
+	scene.add(moonMesh)
+}
+
+function buildOrbitObject(orbitObject: OrbitObject, orbitCurve: THREE.EllipseCurve): THREE.Mesh {
+	const planetGeometry = new THREE.SphereGeometry(1, 32, 32)
+	const planetMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
+	const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial)
+	planetMesh.name = orbitObject.englishName
+
+	planetMesh.addEventListener("click" as any, ({ target }) => handlePlanetClick(orbitObject, target))
+
+	planetMesh.scale.set(
+		orbitObject.equaRadius * 2 * PLANET_SCALE,
+		orbitObject.equaRadius * 2 * PLANET_SCALE,
+		orbitObject.polarRadius * 2 * PLANET_SCALE
+	)
+
+	const planetPosition = orbitCurve.getPoint(orbitObject.mainAnomaly)
+	planetMesh.position.set(planetPosition.x, planetPosition.y, 0)
+	return planetMesh
+}
+
+function createOrbit(orbitObject: OrbitObject, xOffset: number = 0, yOffset: number = 0, scaleUp: number = 1): { orbitCurve: THREE.EllipseCurve, orbitMesh: THREE.Line } {
+	const majorAxis = orbitObject.semimajorAxis * 2 * scaleUp
 	const orbitCurve = new THREE.EllipseCurve(
-		0,
-		0,
+		xOffset,
+		yOffset,
 		majorAxis,
-		majorAxis * (1 - planet.eccentricity),
+		majorAxis * (1 - orbitObject.eccentricity),
 		0,
 		2 * Math.PI,
 		false,
-		planet.longAscNode
+		orbitObject.longAscNode
 	)
 
 	const orbitPoints = orbitCurve.getPoints(360)
@@ -69,66 +127,16 @@ function buildPlanet(planet: Planet): {orbitMesh: THREE.Line, planetMesh: THREE.
 	const orbitMaterial = new THREE.LineBasicMaterial({ color: 0xffffff })
 
 	const orbitMesh = new THREE.Line(orbitGeometry, orbitMaterial)
-
-	const planetGeometry = new THREE.SphereGeometry(1, 32, 32)
-	const planetMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
-	const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial)
-	planetMesh.name = planet.englishName
-
-	planetMesh.addEventListener("click" as any, ({ target }) => {
-		handlePlanetClick(target)
-	})
-
-	const planetScale = 500
-
-	planetMesh.scale.set(
-		planet.equaRadius * 2 * planetScale,
-		planet.equaRadius * 2 * planetScale,
-		planet.polarRadius * 2 * planetScale
-	)
-
-	const planetPosition = orbitCurve.getPoint(planet.mainAnomaly)
-	planetMesh.position.set(planetPosition.x, planetPosition.y, 0.5)
-
-	return { orbitMesh, planetMesh }
+	return { orbitCurve: orbitCurve, orbitMesh: orbitMesh }
 }
 
-function addPlanetOption(planet: Planet, planetMesh: THREE.Mesh, camera: THREE.PerspectiveCamera, controls: OrbitControls) {
+
+function addPlanetOption(planet: Planet, planetMesh: THREE.Mesh) {
 	const objects = document.getElementById("objects")!
 	const optionDiv = document.createElement("div")
 	optionDiv.innerText = planet.englishName
-	optionDiv.addEventListener("click", () => {
-		const targetPos = planetMesh.position.clone();
-		const offset = planet.meanRadius * 10000;
-		const duration = 1.5;
-		const ease: gsap.EaseString = "power2.inOut";
 
-		// Camera Position
-		gsap.to(camera.position, {
-			duration: duration,
-			x: targetPos.x + offset,
-			y: targetPos.y + offset,
-			z: targetPos.z + offset,
-			ease: ease,
-			onUpdate: () => {
-				controls.update();
-			}
-		});
-
-		// Camera Rotation
-		gsap.to(controls.target, {
-			duration: duration,
-			x: targetPos.x,
-			y: targetPos.y,
-			z: targetPos.z,
-			ease: ease,
-			onUpdate: () => {
-				camera.lookAt(controls.target);
-				controls.update();
-			}
-		});
-
-	})
+	optionDiv.addEventListener("click", () => handlePlanetClick(planet, planetMesh))
 
 	objects.appendChild(optionDiv)
 }
