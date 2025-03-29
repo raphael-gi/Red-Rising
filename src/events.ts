@@ -1,7 +1,8 @@
 import * as THREE from "three"
-import { OrbitObject, Planet } from "./types"
+import { OrbitObject } from "./types"
 import gsap from "gsap"
 import Global from "./state"
+import { ZOOM_OFFSET } from "./constants"
 
 function getId(id: string): HTMLElement { return document.getElementById(id)! }
 
@@ -28,7 +29,7 @@ function handlePlanetClick(planet: OrbitObject, planetMesh: THREE.Mesh) {
 
 function goToPlanet(planet: OrbitObject, planetMesh: THREE.Mesh) {
 	const targetPos = planetMesh.position.clone();
-	const offset = planet.meanRadius * 10000;
+	const offset = planet.meanRadius * ZOOM_OFFSET;
 	const duration = 1.5;
 	const ease: gsap.EaseString = "power2.inOut";
 

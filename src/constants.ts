@@ -1,30 +1,41 @@
-const PLANETS: any = {
+import { ConstantPlanets } from "./types";
+
+const PLANETS: ConstantPlanets = {
+	mercure: {
+		id: 0,
+		moons: []
+	},
+	venus: {
+		id: 1,
+		moons: []
+	},
+	terre: {
+		id: 2,
+		moons: ["lune"]
+	},
+	mars: {
+		id: 3,
+		moons: ["phobos", "deimos"]
+	},
+	jupiter: {
+		id: 4,
+		moons: ["io", "ganymede", "europa", "callisto"]
+	},
+	saturne: {
+		id: 5,
+		moons: ["titan", "rhea", "japet"]
+	},
 	uranus: {
+		id: 6,
 		moons: []
 	},
 	neptune: {
-		moons: []
-	},
-	jupiter: {
-		moons: ["io", "ganymede", "europa", "callisto"]
-	},
-	mars: {
-		moons: ["phobos", "deimos"]
-	},
-	mercure: {
-		moons: []
-	},
-	saturne: {
-		moons: ["titan", "rhea", "japet"]
-	},
-	terre: {
-		moons: ["lune"]
-	},
-	venus: {
+		id: 7,
 		moons: []
 	}
 }
 
-const PLANET_SCALE = 100;
+const PLANET_SCALE = 50;
+const ZOOM_OFFSET = 2000;
 
-export { PLANETS, PLANET_SCALE }
+export { PLANETS, PLANET_SCALE, ZOOM_OFFSET }

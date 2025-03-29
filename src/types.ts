@@ -24,8 +24,15 @@ interface Moon extends OrbitObject {
 	aroundPlanet: { planet: string }
 }
 
+interface ConstantPlanets {
+	[key: string]: {
+		id: number;
+		moons: string[]
+	}
+}
+
 interface ConstantPlanet {
 	moons: string[];
 }
 
-export type { OrbitObject, Planet, Moon, ConstantPlanet }
+export type { OrbitObject, Planet, Moon, ConstantPlanet, ConstantPlanets }

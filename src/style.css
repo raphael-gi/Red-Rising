@@ -1,3 +1,7 @@
+* {
+	font-family: "Andale Mono", monospace 
+}
+
 body {
 	margin: 0;
 	overflow: hidden;
@@ -8,18 +12,40 @@ canvas {
 	width: 100vw !important;
 }
 
+section {
+	background-color: rgb(25, 25, 25, 0.5);
+	color: white;
+	backdrop-filter: blur(10px);
+}
+
+h1 {
+	text-align: center;
+}
+
 #list {
 	--collapseWidth: 25px;
 	position: fixed;
 	left: calc(-300px + var(--collapseWidth) / 2);
 	width: 300px;
 	height: 100vh;
-	background-color: white;
 	transition: left 300ms;
+
+	border-right: solid 1px;
 }
 
 #list.open {
 	left: 0;
+}
+
+#list h3, #list h5 {
+	cursor: pointer;
+}
+
+#list #objects {
+	padding: 0 25px;
+}
+#list #objects .moons {
+	padding-left: 25px;
 }
 
 #list #collapseList {
@@ -49,21 +75,42 @@ canvas {
 	width: 80%;
 }
 
-
-
-#titleSection {
-	display: flex;
-	justify-content: space-between;
-}
-
 #info {
 	--info-width: 400px;
 	position: fixed;
 	right: calc(var(--info-width) * -1);
-	background-color: white;
 	width: var(--info-width);
 	height: 100vh;
 	transition: right 300ms;
+	border-left: solid 1px;
+}
+
+#titleSection {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#info > #titleSection > #closeButton {
+	position: absolute;
+	right: 20px;
+	width: 30px;
+	aspect-ratio: 1;
+	border-radius: 100%;
+	border: none;
+	padding: 0;
+	display: grid;
+	place-items: center;
+	cursor: pointer;
+	background-color: rgb(20, 20, 20);
+	transition: background-color 100ms;
+}
+#info > #titleSection > #closeButton:hover {
+	background-color: rgb(80, 80, 80);
+}
+#info > #titleSection > #closeButton > svg {
+	width: 20px;
+	color: white;
 }
 
 .visible {

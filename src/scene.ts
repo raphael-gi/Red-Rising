@@ -3,7 +3,7 @@ import { getMoons, getPlanets, getSun } from "./api"
 import { Moon, OrbitObject, Planet } from "./types";
 import { handlePlanetClick } from "./events";
 import Global from "./state";
-import { PLANET_SCALE } from "./constants";
+import { PLANET_SCALE, PLANETS } from "./constants";
 
 async function buildScene() {
 	const planets: Planet[] = await getPlanets()
@@ -18,6 +18,8 @@ async function buildScene() {
 	const scene = Global.getScene()
 	scene.add(sunMesh)
 
+	const options = new Map()
+
 	planets.forEach((planet) => {
 		const planetMoons: Moon[] = []
 		moons.forEach((moon) => {
@@ -25,12 +27,15 @@ async function buildScene() {
 				planetMoons.push(moon)
 			}
 		})
-		const { orbitMesh, planetMesh } = buildPlanet(planet, planetMoons)
-		scene.add(orbitMesh)
-		interactionManager.add(planetMesh)
-		scene.add(planetMesh)
-		addPlanetOption(planet, planetMesh)
+		const { mesh, moonMeshes } = buildPlanet(planet, planetMoons)
+		const option = getPlanetOption(planet, mesh, moonMeshes)
+		options.set(planet.id, option)
 	})
+	const objects = document.getElementById("objects")!
+
+	for (const key of Object.keys(PLANETS)) {
+		objects.appendChild(options.get(key))
+	}
 }
 
 function buildSun(sun: Planet): THREE.Mesh {
@@ -52,61 +57,48 @@ function buildSun(sun: Planet): THREE.Mesh {
 	return sunMesh
 }
 
-function buildPlanet(planet: Planet, moons: Moon[]): { orbitMesh: THREE.Line, planetMesh: THREE.Mesh } {
-	const { orbitCurve, orbitMesh } = createOrbit(planet)
+function buildPlanet(planet: Planet, moons: Moon[]): { mesh: THREE.Mesh, moonMeshes: { moon: Moon, moonMesh: THREE.Mesh }[] } {
+	const orbitCurve = createOrbit(planet)
+	const { position, mesh} = buildOrbitObject(planet, orbitCurve)
 
-	const planetGeometry = new THREE.SphereGeometry(1, 32, 32)
-	const planetMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
-	const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial)
-	planetMesh.name = planet.englishName
+	const moonMeshes = moons.map((moon) => {
+		return { moon, moonMesh: buildMoon(position, moon) }
+	})
 
-	planetMesh.addEventListener("click" as any, ({ target }) => handlePlanetClick(planet, target))
-
-	planetMesh.scale.set(
-		planet.equaRadius * 2 * PLANET_SCALE,
-		planet.equaRadius * 2 * PLANET_SCALE,
-		planet.polarRadius * 2 * PLANET_SCALE
-	)
-
-	const planetPosition = orbitCurve.getPoint(planet.mainAnomaly)
-	planetMesh.position.set(planetPosition.x, planetPosition.y, 0)
-
-	moons.forEach((moon) => buildMoon(planetPosition, moon))
-
-	return { orbitMesh, planetMesh }
+	return { mesh, moonMeshes }
 }
 
-function buildMoon(planetPosition: THREE.Vector2, moon: Moon) {
-	const { orbitCurve, orbitMesh } = createOrbit(moon, planetPosition.x, planetPosition.y, PLANET_SCALE / 5)
-	const moonMesh = buildOrbitObject(moon, orbitCurve)
+function buildMoon(planetPosition: THREE.Vector2, moon: Moon): THREE.Mesh {
+	const orbitCurve = createOrbit(moon, planetPosition.x, planetPosition.y, PLANET_SCALE)
+	const { mesh } = buildOrbitObject(moon, orbitCurve)
+	return mesh
+}
+
+function buildOrbitObject(orbitObject: OrbitObject, orbitCurve: THREE.EllipseCurve): { position: THREE.Vector2, mesh: THREE.Mesh } {
+	const planetGeometry = new THREE.SphereGeometry(1, 32, 32)
+	const planetMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
+	const orbitObjectMesh = new THREE.Mesh(planetGeometry, planetMaterial)
+	orbitObjectMesh.name = orbitObject.englishName
+
+	orbitObjectMesh.addEventListener("click" as any, ({ target }) => handlePlanetClick(orbitObject, target))
+
+	const equaRadius = (orbitObject.equaRadius > 0 ? orbitObject.equaRadius : orbitObject.meanRadius) * 2 * PLANET_SCALE
+	const polarRadius = (orbitObject.polarRadius > 0 ? orbitObject.polarRadius : orbitObject.meanRadius) * 2 * PLANET_SCALE
+
+	orbitObjectMesh.scale.set(equaRadius, equaRadius, polarRadius)
+
+	const orbitObjectPosition = orbitCurve.getPoint(orbitObject.mainAnomaly)
+	orbitObjectMesh.position.set(orbitObjectPosition.x, orbitObjectPosition.y, 0)
 
 	const scene = Global.getScene()
 	const interactionManager = Global.getInteractionManager()
-	scene.add(orbitMesh)
-	interactionManager.add(moonMesh)
-	scene.add(moonMesh)
+	interactionManager.add(orbitObjectMesh)
+	scene.add(orbitObjectMesh)
+
+	return { position: orbitObjectPosition, mesh: orbitObjectMesh }
 }
 
-function buildOrbitObject(orbitObject: OrbitObject, orbitCurve: THREE.EllipseCurve): THREE.Mesh {
-	const planetGeometry = new THREE.SphereGeometry(1, 32, 32)
-	const planetMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
-	const planetMesh = new THREE.Mesh(planetGeometry, planetMaterial)
-	planetMesh.name = orbitObject.englishName
-
-	planetMesh.addEventListener("click" as any, ({ target }) => handlePlanetClick(orbitObject, target))
-
-	planetMesh.scale.set(
-		orbitObject.equaRadius * 2 * PLANET_SCALE,
-		orbitObject.equaRadius * 2 * PLANET_SCALE,
-		orbitObject.polarRadius * 2 * PLANET_SCALE
-	)
-
-	const planetPosition = orbitCurve.getPoint(orbitObject.mainAnomaly)
-	planetMesh.position.set(planetPosition.x, planetPosition.y, 0)
-	return planetMesh
-}
-
-function createOrbit(orbitObject: OrbitObject, xOffset: number = 0, yOffset: number = 0, scaleUp: number = 1): { orbitCurve: THREE.EllipseCurve, orbitMesh: THREE.Line } {
+function createOrbit(orbitObject: OrbitObject, xOffset: number = 0, yOffset: number = 0, scaleUp: number = 1): THREE.EllipseCurve {
 	const majorAxis = orbitObject.semimajorAxis * 2 * scaleUp
 	const orbitCurve = new THREE.EllipseCurve(
 		xOffset,
@@ -127,18 +119,34 @@ function createOrbit(orbitObject: OrbitObject, xOffset: number = 0, yOffset: num
 	const orbitMaterial = new THREE.LineBasicMaterial({ color: 0xffffff })
 
 	const orbitMesh = new THREE.Line(orbitGeometry, orbitMaterial)
-	return { orbitCurve: orbitCurve, orbitMesh: orbitMesh }
+	Global.getScene().add(orbitMesh)
+
+	return orbitCurve
 }
 
 
-function addPlanetOption(planet: Planet, planetMesh: THREE.Mesh) {
-	const objects = document.getElementById("objects")!
+function getPlanetOption(planet: Planet, planetMesh: THREE.Mesh, moons: { moon: Moon, moonMesh: THREE.Mesh }[]): HTMLDivElement {
 	const optionDiv = document.createElement("div")
-	optionDiv.innerText = planet.englishName
 
-	optionDiv.addEventListener("click", () => handlePlanetClick(planet, planetMesh))
+	const planetTag = document.createElement("h3")
+	planetTag.innerText = planet.englishName
+	planetTag.addEventListener("click", () => handlePlanetClick(planet, planetMesh))
 
-	objects.appendChild(optionDiv)
+	const moonsDiv = document.createElement("div")
+	moonsDiv.classList.add("moons")
+
+	moons.forEach(({ moon, moonMesh }) => {
+		const moonTag = document.createElement("h5")
+		moonTag.innerText = moon.englishName
+		moonTag.addEventListener("click", () => handlePlanetClick(moon, moonMesh))
+
+		moonsDiv.appendChild(moonTag)
+	})
+
+	optionDiv.appendChild(planetTag)
+	optionDiv.appendChild(moonsDiv)
+
+	return optionDiv
 }
 
 export { buildScene }
