@@ -1,27 +1,11 @@
-import { Mesh } from "three";
 import { MoonInterface } from "../types"
 import Moon from "../scene/moon";
-import { handlePlanetClick } from "../events";
+import Option from "./option";
 
-class MoonOption extends HTMLDivElement {
-	private moon: MoonInterface;
-	private mesh: Mesh;
-
+class MoonOption extends Option<MoonInterface, Moon, "h5"> {
 	constructor(moon: Moon) {
-		super()
+		super(moon, "h5")
 		super.classList.add("moons")
-		this.moon = moon.getOrbitObject();
-		this.mesh = moon.getMesh();
-
-		const tag = this.getTitleText();
-		super.appendChild(tag)
-	}
-
-	private getTitleText(): HTMLHeadingElement {
-		const tag = document.createElement("h5");
-		tag.innerText = this.moon.englishName;
-		tag.addEventListener("click", () => handlePlanetClick(this.moon, this.mesh))
-		return tag;
 	}
 }
 

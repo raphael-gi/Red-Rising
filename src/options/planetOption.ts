@@ -1,33 +1,16 @@
-import { Mesh } from "three";
-import { handlePlanetClick } from "../events";
 import Planet from "../scene/planet";
 import { PlanetInterface } from "../types"
 import MoonOption from "./moonOption";
+import Option from "./option";
 
-class PlanetOption extends HTMLDivElement {
-	private planet: PlanetInterface;
-	private mesh: Mesh;
-
+class PlanetOption extends Option<PlanetInterface, Planet, "h3"> {
 	constructor(planet: Planet) {
-		super()
-
-		this.planet = planet.getOrbitObject();
-		this.mesh = planet.getMesh();
-
-		const tag = this.getTitleText();
-		super.appendChild(tag);
+		super(planet, "h3");
 
 		planet.getMoons().forEach((moon) => {
 			const moonOption = new MoonOption(moon);
 			super.appendChild(moonOption);
 		})
-	}
-
-	private getTitleText(): HTMLHeadingElement {
-		const tag = document.createElement("h3");
-		tag.innerText = this.planet.englishName;
-		tag.addEventListener("click", () => handlePlanetClick(this.planet, this.mesh))
-		return tag;
 	}
 }
 
