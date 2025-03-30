@@ -1,4 +1,4 @@
-type OrbitObject = {
+type OrbitObjectType = {
 	id: string;
 	englishName: string;
 	semimajorAxis: number;
@@ -16,11 +16,11 @@ type OrbitObject = {
 	longAscNode: number;
 }
 
-interface Planet extends OrbitObject {
+interface PlanetInterface extends OrbitObjectType {
 	moons: { moon: string }[]
 }
 
-interface Moon extends OrbitObject {
+interface MoonInterface extends OrbitObjectType {
 	aroundPlanet: { planet: string }
 }
 
@@ -35,4 +35,4 @@ interface ConstantPlanet {
 	moons: string[];
 }
 
-export type { OrbitObject, Planet, Moon, ConstantPlanet, ConstantPlanets }
+export type { OrbitObjectType, PlanetInterface, MoonInterface, ConstantPlanet, ConstantPlanets }

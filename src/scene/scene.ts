@@ -1,14 +1,14 @@
 import * as THREE from "three"
-import { getMoons, getPlanets, getSun } from "./api"
-import { Moon, OrbitObject, Planet } from "./types";
-import { handlePlanetClick } from "./events";
-import Global from "./state";
-import { PLANET_SCALE, PLANETS } from "./constants";
+import { getMoons, getPlanets, getSun } from "../api"
+import { MoonInterface, PlanetInterface } from "../types";
+import Global from "../state";
+import { PLANETS } from "../constants";
+import Planet from "./planet";
 
 async function buildScene() {
-	const planets: Planet[] = await getPlanets()
-	const moons: Moon[] = await getMoons(planets);
-	const sun: Planet = await getSun()
+	const planets: PlanetInterface[] = await getPlanets();
+	const moons: MoonInterface[] = await getMoons(planets);
+	const sun: PlanetInterface = await getSun();
 
 	const sunMesh = buildSun(sun)
 
@@ -20,17 +20,13 @@ async function buildScene() {
 
 	const options = new Map()
 
-	planets.forEach((planet) => {
-		const planetMoons: Moon[] = []
-		moons.forEach((moon) => {
-			if (moon.aroundPlanet.planet === planet.id) {
-				planetMoons.push(moon)
-			}
-		})
-		const { mesh, moonMeshes } = buildPlanet(planet, planetMoons)
-		const option = getPlanetOption(planet, mesh, moonMeshes)
-		options.set(planet.id, option)
+	planets.forEach((planetInfo) => {
+		const planet = new Planet(planetInfo);
+		planet.setMoons(moons);
+		planet.addToScene();
+		options.set(planetInfo.id, planet.getOption());
 	})
+
 	const objects = document.getElementById("objects")!
 
 	for (const key of Object.keys(PLANETS)) {
@@ -38,7 +34,7 @@ async function buildScene() {
 	}
 }
 
-function buildSun(sun: Planet): THREE.Mesh {
+function buildSun(sun: PlanetInterface): THREE.Mesh {
 	const sunGeometry = new THREE.SphereGeometry(1, 32, 32)
 
 	const sunMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -56,9 +52,12 @@ function buildSun(sun: Planet): THREE.Mesh {
 
 	return sunMesh
 }
+/*
 
 function buildPlanet(planet: Planet, moons: Moon[]): { mesh: THREE.Mesh, moonMeshes: { moon: Moon, moonMesh: THREE.Mesh }[] } {
-	const orbitCurve = createOrbit(planet)
+	const orbit = new Orbit(planet)
+	const orbitCurve = orbit.getCurve()
+
 	const { position, mesh} = buildOrbitObject(planet, orbitCurve)
 
 	const moonMeshes = moons.map((moon) => {
@@ -74,7 +73,7 @@ function buildMoon(planetPosition: THREE.Vector2, moon: Moon): THREE.Mesh {
 	return mesh
 }
 
-function buildOrbitObject(orbitObject: OrbitObject, orbitCurve: THREE.EllipseCurve): { position: THREE.Vector2, mesh: THREE.Mesh } {
+function buildOrbitObject(orbitObject: OrbitObjectType, orbitCurve: THREE.EllipseCurve): { position: THREE.Vector2, mesh: THREE.Mesh } {
 	const planetGeometry = new THREE.SphereGeometry(1, 32, 32)
 	const planetMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
 	const orbitObjectMesh = new THREE.Mesh(planetGeometry, planetMaterial)
@@ -98,7 +97,7 @@ function buildOrbitObject(orbitObject: OrbitObject, orbitCurve: THREE.EllipseCur
 	return { position: orbitObjectPosition, mesh: orbitObjectMesh }
 }
 
-function createOrbit(orbitObject: OrbitObject, xOffset: number = 0, yOffset: number = 0, scaleUp: number = 1): THREE.EllipseCurve {
+function createOrbit(orbitObject: OrbitObjectType, xOffset: number = 0, yOffset: number = 0, scaleUp: number = 1): THREE.EllipseCurve {
 	const majorAxis = orbitObject.semimajorAxis * 2 * scaleUp
 	const orbitCurve = new THREE.EllipseCurve(
 		xOffset,
@@ -125,7 +124,7 @@ function createOrbit(orbitObject: OrbitObject, xOffset: number = 0, yOffset: num
 }
 
 
-function getPlanetOption(planet: Planet, planetMesh: THREE.Mesh, moons: { moon: Moon, moonMesh: THREE.Mesh }[]): HTMLDivElement {
+function getPlanetOption(planet: PlanetInterface, planetMesh: THREE.Mesh, moons: { moon: MoonInterface, moonMesh: THREE.Mesh }[]): HTMLDivElement {
 	const optionDiv = document.createElement("div")
 
 	const planetTag = document.createElement("h3")
@@ -148,5 +147,6 @@ function getPlanetOption(planet: Planet, planetMesh: THREE.Mesh, moons: { moon: 
 
 	return optionDiv
 }
+*/
 
 export { buildScene }

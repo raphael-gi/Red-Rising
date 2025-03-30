@@ -1,5 +1,5 @@
 import * as THREE from "three"
-import { OrbitObject } from "./types"
+import { OrbitObjectType } from "./types"
 import gsap from "gsap"
 import Global from "./state"
 import { ZOOM_OFFSET } from "./constants"
@@ -21,13 +21,13 @@ collapseList.addEventListener("click", () => {
 	list.classList.toggle("open")
 })
 
-function handlePlanetClick(planet: OrbitObject, planetMesh: THREE.Mesh) {
+function handlePlanetClick(planet: OrbitObjectType, planetMesh: THREE.Mesh) {
 	title.innerHTML = planetMesh.name
 	infoSection.classList.add("visible")
 	goToPlanet(planet, planetMesh)
 }
 
-function goToPlanet(planet: OrbitObject, planetMesh: THREE.Mesh) {
+function goToPlanet(planet: OrbitObjectType, planetMesh: THREE.Mesh) {
 	const targetPos = planetMesh.position.clone();
 	const offset = planet.meanRadius * ZOOM_OFFSET;
 	const duration = 1.5;

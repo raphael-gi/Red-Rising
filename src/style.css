@@ -103,13 +103,13 @@ h1 {
 	place-items: center;
 	cursor: pointer;
 	background-color: rgb(20, 20, 20);
-	transition: background-color 100ms;
+	transition: background-color 150ms;
 }
 #info > #titleSection > #closeButton:hover {
 	background-color: rgb(80, 80, 80);
 }
 #info > #titleSection > #closeButton > svg {
-	width: 20px;
+	width: 15px;
 	color: white;
 }
 
